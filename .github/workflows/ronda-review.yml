@@ -1,0 +1,25 @@
+name: Ronda review
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, synchronize]
+  issue_comment:
+    types: [created]
+concurrency:
+  group: ronda-review-${{ github.event.pull_request.number || github.event.issue.number }}
+  cancel-in-progress: true
+jobs:
+  ronda:
+    # Cheap caller-side pre-filter. Not load-bearing for correctness - Ronda
+    # re-checks the draft state and the exact comment text itself, so this
+    # only saves CI minutes on requests Ronda would immediately skip anyway.
+    if: |
+      (github.event_name == 'pull_request' && github.event.pull_request.draft != true) ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request != null)
+    # SMOKE TEST: pinned to develop because lhpaul/ronda's main is still the
+    # unmodified template bootstrap and has no ronda-review.yml or src/.
+    # Revert this ref and ronda_ref to main once v0 is released.
+    uses: lhpaul/ronda/.github/workflows/ronda-review.yml@develop
+    with:
+      ronda_ref: develop
+    secrets:
+      model_api_key: ${{ secrets.RONDA_MODEL_API_KEY }}
